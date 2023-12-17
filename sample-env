@@ -1,0 +1,6 @@
+MEMPHIS_HOST=<instance>.cloud.memphis.dev
+# You need to create this user in your instance
+MEMPHIS_USERNAME=photovote
+MEMPHIS_ACCOUNT_ID=<account-id> from Memphis.dev dashboard
+MEMPHIS_PASSWORD=<password for created photovote user>
+
