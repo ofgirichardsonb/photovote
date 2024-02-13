@@ -1,0 +1,4 @@
+from PhotoVote.Event.Competition.CompetitionAdded import CompetitionAdded
+from PhotoVote.Event.Competition.CompetitionRemoved import CompetitionRemoved
+from PhotoVote.Event.Competition.CompetitionNameChanged import CompetitionNameChanged
+from PhotoVote.Event.Competition.CompetitionDescriptionChanged import CompetitionDescriptionChanged

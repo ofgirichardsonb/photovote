@@ -1,0 +1,5 @@
+from PhotoVote.Event.Candidate.CandidateAdded import CandidateAdded
+from PhotoVote.Event.Candidate.CandidateRemoved import CandidateRemoved
+from PhotoVote.Event.Candidate.CandidateNameChanged import CandidateNameChanged
+from PhotoVote.Event.Candidate.CandidateDescriptionChanged import CandidateDescriptionChanged
+from PhotoVote.Event.Candidate.CandidateImageChanged import CandidateImageChanged
