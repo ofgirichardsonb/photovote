@@ -40,9 +40,18 @@ class Ballot(AggregateRoot[BallotId]):
     def _handle_candidate_rated(self, rated: BallotCandidateRated):
         if self.cast:
             raise AlreadyVotedError()
-        if rated.competition_id not in self.ratings:
-            self.ratings[rated.competition_id] = {}
-        self.ratings[rated.competition_id][rated.candidate_id] = rated.rating
+        competition_id = CompetitionId(rated.competition_id) if rated.competition_id else None
+        candidate_id = CandidateId(rated.candidate_id) if rated.candidate_id else None
+        rating = Rating(rated.rating) if (0 < rated.rating <= 5) else None
+        if competition_id is None:
+            raise ValueError("Competition id is required")
+        if candidate_id is None:
+            raise ValueError("Candidate id is required")
+        if rating is None:
+            raise ValueError("Rating must be between 1 and 5")
+        if competition_id not in self.ratings:
+            self.ratings[competition_id] = {}
+        self.ratings[competition_id][candidate_id] = rating
 
     def _handle_cast(self, cast: BallotCast):
         if self.cast:

@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Dict, Callable, Type
 
 from PhotoVote.Domain import AggregateRoot
-from PhotoVote.Domain.Ballot import BallotId
+from PhotoVote.Domain.Ballot import BallotId, Ballot
 from PhotoVote.Domain.Competition import CompetitionId, Competition
 from PhotoVote.Domain.Election import ElectionId, ElectionName, ElectionDescription
 from PhotoVote.Event import Event
@@ -10,8 +10,8 @@ from PhotoVote.Event.Candidate import CandidateAdded, CandidateRemoved, Candidat
     CandidateDescriptionChanged, CandidateImageChanged
 from PhotoVote.Event.Competition import CompetitionAdded, CompetitionRemoved, CompetitionNameChanged, \
     CompetitionDescriptionChanged
-from PhotoVote.Event.Election import ElectionCreated, ElectionDeleted, ElectionNameChanged, ElectionDescriptionChanged, \
-    ElectionOpened, ElectionClosed
+from PhotoVote.Event.Election import ElectionCreated, ElectionDeleted, ElectionNameChanged, \
+    ElectionDescriptionChanged, ElectionOpened, ElectionClosed
 from PhotoVote.Event.Voter import VoterRegistered
 
 
@@ -20,7 +20,7 @@ class Election(AggregateRoot[ElectionId]):
         super().__init__(election_id)
 
     def when(self, event: Event):
-        handlers = {
+        handlers: Dict[Type, Callable[[Event], None]] = {
             ElectionCreated: self._handle_created,
             ElectionDeleted: self._handle_deleted,
             ElectionNameChanged: self._handle_name_changed,
@@ -98,8 +98,7 @@ class Election(AggregateRoot[ElectionId]):
         if competition is not None:
             competition.apply(changed)
 
-
-    def get_ballot_by_id(self, bid: BallotId) -> Optional['Ballot']:
+    def get_ballot_by_id(self, bid: BallotId) -> Optional[Ballot]:
         return next((ball for ball in self.ballots if ball.id == bid), None)
 
     def _handle_candidate_rated(self, rated: BallotCandidateRated):

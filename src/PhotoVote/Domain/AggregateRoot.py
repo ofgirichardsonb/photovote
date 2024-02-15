@@ -43,4 +43,4 @@ class AggregateRoot(BaseModel, Generic[T]):
         self.deleted = True
 
     def __init__(self, aggregate_id: T):
-        self.id = aggregate_id
+        super().__init__(id=aggregate_id)

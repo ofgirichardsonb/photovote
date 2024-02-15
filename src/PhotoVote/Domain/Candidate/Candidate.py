@@ -1,7 +1,8 @@
 from typing import Optional
 
 from PhotoVote.Domain import AggregateRoot, AggregateId
-from PhotoVote.Domain.Candidate import CandidateId, CandidateName, CandidateDescription, CandidateImage
+from PhotoVote.Domain.Candidate import CandidateId, CandidateName, CandidateDescription, CandidateImage, ImageUrl, \
+    ImageCaption
 from PhotoVote.Event import Event
 from PhotoVote.Event.Candidate import CandidateAdded, CandidateRemoved, CandidateNameChanged, \
     CandidateDescriptionChanged, CandidateImageChanged
@@ -45,7 +46,12 @@ class Candidate(AggregateRoot[CandidateId]):
         self.description = CandidateDescription(added.description) if added.description is not None else None
         if added.image_url is None and added.image_caption is not None:
             raise ValueError("Candidate image URL must be set to provide caption")
-        self.image = CandidateImage(added.image_url, added.image_caption) if added.image_url is not None else None
+        image_caption = ImageCaption(added.image_caption) if added.image_caption else None
+        if added.image_url is not None:
+            image_url = ImageUrl(added.image_url)
+            self.image = CandidateImage(url=image_url, caption=image_caption)
+        else:
+            self.image = None
 
     def _handle_removed(self, removed: CandidateRemoved):
         self.delete()
@@ -59,5 +65,9 @@ class Candidate(AggregateRoot[CandidateId]):
     def _handle_image_changed(self, changed: CandidateImageChanged):
         if changed.url is None and changed.caption is not None:
             raise ValueError("Image URL must be set to set caption")
-        self.image = CandidateImage(changed.url,
-                                    changed.caption) if changed.url is not None else None
+        image_caption = ImageCaption(changed.caption) if changed.caption else None
+        if changed.url is not None:
+            image_url = ImageUrl(changed.url)
+            self.image = CandidateImage(url=image_url, caption=image_caption)
+        else:
+            self.image = None

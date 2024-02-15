@@ -10,11 +10,11 @@ class AggregateId(RootModel):
         return str(ulid.from_int(0))
 
     def __init__(self, aggregate_id: str):
+        super().__init__(aggregate_id)
         try:
             parse_ulid(aggregate_id)
         except ValueError:
             raise ValueError("Aggregate ID must be a valid ULID")
-        self.root = aggregate_id
 
     def __str__(self):
         return self.root

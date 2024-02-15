@@ -3,7 +3,8 @@ from typing import Optional, List
 from pydantic import Field
 
 from PhotoVote.Domain import AggregateRoot, AggregateId
-from PhotoVote.Domain.Candidate import Candidate, CandidateName, CandidateDescription, CandidateImage
+from PhotoVote.Domain.Candidate import Candidate, CandidateName, CandidateDescription, CandidateImage, ImageUrl, \
+    ImageCaption, CandidateId
 from PhotoVote.Domain.Competition import CompetitionId, CompetitionName, CompetitionDescription
 from PhotoVote.Event import Event
 from PhotoVote.Event.Candidate import CandidateAdded, CandidateNameChanged, CandidateDescriptionChanged, \
@@ -15,7 +16,7 @@ from PhotoVote.Event.Competition import CompetitionAdded, CompetitionRemoved, Co
 class Competition(AggregateRoot[CompetitionId]):
     name: CompetitionName = CompetitionName("")
     description: Optional[CompetitionDescription] = None
-    candidates: List[CandidateAdded] = Field(default_factory=lambda: [])
+    candidates: List[Candidate] = Field(default_factory=lambda: [])
 
     def __init__(self, competition_id: CompetitionId):
         super().__init__(competition_id)
@@ -67,7 +68,8 @@ class Competition(AggregateRoot[CompetitionId]):
         self.description = CompetitionDescription(changed.description) if changed.description else None
 
     def _handle_candidate_added(self, added: CandidateAdded):
-        candidate = Candidate(added.candidate_id)
+        candidate_id = CandidateId(added.candidate_id)
+        candidate = Candidate(candidate_id)
         candidate.name = CandidateName(added.name)
         candidate.description = CandidateDescription(added.description) if added.description else None
         self.candidates.append(candidate)
@@ -89,7 +91,12 @@ class Competition(AggregateRoot[CompetitionId]):
             raise ValueError("Candidate image URL must be set to set caption")
         for candidate in self.candidates:
             if candidate.id == changed.candidate_id:
-                candidate.image = CandidateImage(changed.url, changed.caption) if changed.url else None
+                image_caption = ImageCaption(changed.caption) if changed.caption else None
+                if changed.url:
+                    image_url = ImageUrl(changed.url)
+                    candidate.image = CandidateImage(url=image_url, caption=image_caption) if changed.url else None
+                else:
+                    candidate.image = None
                 break
 
     def _handle_candidate_removed(self, removed: CandidateRemoved):
