@@ -6,4 +6,4 @@ class Rating(RootModel):
         super().__init__(rating)
 
     def __int__(self):
-        return self.rating
+        return self.root
