@@ -1,8 +1,8 @@
-from typing import Dict
+from typing import Dict, Type, Callable
 
 from pydantic import Field
 
-from PhotoVote.Domain import AggregateRoot, AggregateId
+from PhotoVote.Domain import Aggregate, AggregateId
 from PhotoVote.Domain.Ballot import BallotId, Rating
 from PhotoVote.Domain.Candidate import CandidateId
 from PhotoVote.Domain.Competition import CompetitionId
@@ -11,33 +11,35 @@ from PhotoVote.Event.Ballot import BallotCreated, BallotCandidateRated, BallotCa
 from PhotoVote.Exception import AlreadyVotedError
 
 
-class Ballot(AggregateRoot[BallotId]):
+class Ballot(Aggregate[BallotId]):
     ratings: Dict[CompetitionId, Dict[CandidateId, Rating]] = Field(default_factory=lambda: {})
     cast: bool = False
+    _handlers: Dict[Type[Event], Callable[[Event], None]]
 
     def __init__(self, ballot_id: BallotId):
         super().__init__(ballot_id)
+        self._handlers = {
+            BallotCreated: lambda e: self._handle_created(e),
+            BallotCandidateRated: lambda e: self._handle_candidate_rated(e),
+            BallotCast: lambda e: self._handle_cast(e)
+        }
 
-    def when(self, event: Event):
-        if isinstance(event, BallotCreated):
-            self._handle_created(event)
-        elif isinstance(event, BallotCandidateRated):
-            self._handle_candidate_rated(event)
-        elif isinstance(event, BallotCast):
-            self._handle_cast(event)
+    def when(self, event: Event) -> None:
+        if isinstance(event, tuple(self._handlers.keys())):
+            self._handlers[type(event)](event)
         else:
             raise ValueError(f"Unknown event type {event.__class__.__name__}")
 
-    def ensure_valid_state(self):
+    def ensure_valid_state(self) -> None:
         if not isinstance(self.id, BallotId):
             raise ValueError("Ballot id must be of type BallotId")
         if self.id == AggregateId.empty():
             raise ValueError("Ballot ID cannot be empty")
 
-    def _handle_created(self, created: BallotCreated):
+    def _handle_created(self, created: BallotCreated) -> None:
         self.id = BallotId(created.ballot_id)
 
-    def _handle_candidate_rated(self, rated: BallotCandidateRated):
+    def _handle_candidate_rated(self, rated: BallotCandidateRated) -> None:
         if self.cast:
             raise AlreadyVotedError()
         competition_id = CompetitionId(rated.competition_id) if rated.competition_id else None
@@ -53,7 +55,7 @@ class Ballot(AggregateRoot[BallotId]):
             self.ratings[competition_id] = {}
         self.ratings[competition_id][candidate_id] = rating
 
-    def _handle_cast(self, cast: BallotCast):
+    def _handle_cast(self, cast: BallotCast) -> None:
         if self.cast:
             raise AlreadyVotedError()
         self.cast = True

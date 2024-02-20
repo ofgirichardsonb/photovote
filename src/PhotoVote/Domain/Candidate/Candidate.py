@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, Callable, Type, Dict
 
-from PhotoVote.Domain import AggregateRoot, AggregateId
+from PhotoVote.Domain import Aggregate, AggregateId
 from PhotoVote.Domain.Candidate import CandidateId, CandidateName, CandidateDescription, CandidateImage, ImageUrl, \
     ImageCaption
 from PhotoVote.Event import Event
@@ -8,29 +8,29 @@ from PhotoVote.Event.Candidate import CandidateAdded, CandidateRemoved, Candidat
     CandidateDescriptionChanged, CandidateImageChanged
 
 
-class Candidate(AggregateRoot[CandidateId]):
+class Candidate(Aggregate[CandidateId]):
     name: CandidateName = CandidateName("")
     description: Optional[CandidateDescription] = None
     image: Optional[CandidateImage] = None
+    _handlers: Dict[Type[Event], Callable[[Event], None]]
 
     def __init__(self, candidate_id: CandidateId):
         super().__init__(candidate_id)
+        self._handlers = {
+            CandidateAdded: lambda e: self._handled_added(e),
+            CandidateRemoved: lambda e: self._handled_removed(e),
+            CandidateNameChanged: lambda e: self._handle_name_changed(e),
+            CandidateDescriptionChanged: lambda e: self._handle_description_changed(e),
+            CandidateImageChanged: lambda e: self._handle_image_changed(e)
+        }
 
-    def when(self, event: Event):
-        if isinstance(event, CandidateAdded):
-            self._handle_added(event)
-        elif isinstance(event, CandidateRemoved):
-            self._handle_removed(event)
-        elif isinstance(event, CandidateNameChanged):
-            self._handle_name_changed(event)
-        elif isinstance(event, CandidateDescriptionChanged):
-            self._handle_description_changed(event)
-        elif isinstance(event, CandidateImageChanged):
-            self._handle_image_changed(event)
+    def when(self, event: Event) -> None:
+        if isinstance(event, tuple(self._handlers.keys())):
+            self._handlers[type(event)](event)
         else:
             raise ValueError(f"Unknown event type {event.__class__.__name__} received by Candidate aggregate")
 
-    def ensure_valid_state(self):
+    def ensure_valid_state(self) -> None:
         if not isinstance(self.id, CandidateId):
             raise ValueError("Candidate aggregate must have an id of type CandidateId")
         if self.id == AggregateId.empty():
@@ -40,7 +40,7 @@ class Candidate(AggregateRoot[CandidateId]):
         if self.description == "":
             raise ValueError("Candidate description cannot be empty (use None instead)")
 
-    def _handle_added(self, added: CandidateAdded):
+    def _handle_added(self, added: CandidateAdded) -> None:
         self.id = CandidateId(added.candidate_id)
         self.name = CandidateName(added.name)
         self.description = CandidateDescription(added.description) if added.description is not None else None
@@ -53,16 +53,16 @@ class Candidate(AggregateRoot[CandidateId]):
         else:
             self.image = None
 
-    def _handle_removed(self, removed: CandidateRemoved):
+    def _handle_removed(self, removed: CandidateRemoved) -> None:
         self.delete()
 
-    def _handle_name_changed(self, changed: CandidateNameChanged):
+    def _handle_name_changed(self, changed: CandidateNameChanged) -> None:
         self.name = CandidateName(changed.name)
 
-    def _handle_description_changed(self, changed: CandidateDescriptionChanged):
+    def _handle_description_changed(self, changed: CandidateDescriptionChanged) -> None:
         self.description = CandidateDescription(changed.description) if changed.description is not None else None
 
-    def _handle_image_changed(self, changed: CandidateImageChanged):
+    def _handle_image_changed(self, changed: CandidateImageChanged) -> None:
         if changed.url is None and changed.caption is not None:
             raise ValueError("Image URL must be set to set caption")
         image_caption = ImageCaption(changed.caption) if changed.caption else None

@@ -7,4 +7,4 @@ from PhotoVote.Domain.Candidate import ImageCaption, ImageUrl
 
 class CandidateImage(BaseModel):
     url: ImageUrl
-    caption: Optional[ImageCaption]
+    caption: Optional[ImageCaption] = None

@@ -4,6 +4,6 @@ from PhotoVote.Event import Event
 
 
 class CompetitionDescriptionChanged(Event):
-    competition_id: str
-    election_id: str
-    description: Optional[str]
+    competition_id: Optional[str] = None
+    election_id: Optional[str] = None
+    description: Optional[str] = None

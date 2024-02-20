@@ -1,8 +1,8 @@
-from typing import Optional, List
+from typing import Optional, List, Callable, Type, Dict
 
 from pydantic import Field
 
-from PhotoVote.Domain import AggregateRoot, AggregateId
+from PhotoVote.Domain import Aggregate, AggregateId
 from PhotoVote.Domain.Candidate import Candidate, CandidateName, CandidateDescription, CandidateImage, ImageUrl, \
     ImageCaption, CandidateId
 from PhotoVote.Domain.Competition import CompetitionId, CompetitionName, CompetitionDescription
@@ -13,37 +13,33 @@ from PhotoVote.Event.Competition import CompetitionAdded, CompetitionRemoved, Co
     CompetitionDescriptionChanged
 
 
-class Competition(AggregateRoot[CompetitionId]):
+class Competition(Aggregate[CompetitionId]):
     name: CompetitionName = CompetitionName("")
     description: Optional[CompetitionDescription] = None
     candidates: List[Candidate] = Field(default_factory=lambda: [])
+    _handlers: Dict[Type[Event], Callable[[Event], None]]
 
     def __init__(self, competition_id: CompetitionId):
         super().__init__(competition_id)
+        self._handlers = {
+            CompetitionAdded: lambda e: self._handle_added(e),
+            CompetitionRemoved: lambda e: self._handle_removed(e),
+            CompetitionNameChanged: lambda e: self._handle_name_changed(e),
+            CompetitionDescriptionChanged: lambda e: self._handle_description_changed(e),
+            CandidateAdded: lambda e: self._handle_candidate_added(e),
+            CandidateRemoved: lambda e: self._handle_candidate_removed(e),
+            CandidateNameChanged: lambda e: self._handle_candidate_name_changed(e),
+            CandidateDescriptionChanged: lambda e: self._handle_candidate_description_changed(e),
+            CandidateImageChanged: lambda e: self._handle_candidate_image_changed(e)
+        }
 
-    def when(self, event: Event):
-        if isinstance(event, CompetitionAdded):
-            self._handle_added(event)
-        elif isinstance(event, CompetitionRemoved):
-            self._handle_removed(event)
-        elif isinstance(event, CompetitionNameChanged):
-            self._handle_name_changed(event)
-        elif isinstance(event, CompetitionDescriptionChanged):
-            self._handle_description_changed(event)
-        elif isinstance(event, CandidateAdded):
-            self._handle_candidate_added(event)
-        elif isinstance(event, CandidateRemoved):
-            self._handle_candidate_removed(event)
-        elif isinstance(event, CandidateNameChanged):
-            self._handle_candidate_name_changed(event)
-        elif isinstance(event, CandidateDescriptionChanged):
-            self._handle_candidate_description_changed(event)
-        elif isinstance(event, CandidateImageChanged):
-            self._handle_candidate_image_changed(event)
+    def when(self, event: Event) -> None:
+        if isinstance(event, tuple(self._handlers.keys())):
+            self._handlers[type(event)](event)
         else:
             raise TypeError(f"Unexpected event type {type(event)} received by Competition-{self.id}")
 
-    def ensure_valid_state(self):
+    def ensure_valid_state(self) -> None:
         if not isinstance(self.id, CompetitionId):
             raise ValueError("Competition id must be of type CompetitionId")
         if self.id == AggregateId.empty():
@@ -53,40 +49,40 @@ class Competition(AggregateRoot[CompetitionId]):
         if self.description == "":
             raise ValueError("Competition description cannot be empty (use None instead)")
 
-    def _handle_added(self, added: CompetitionAdded):
+    def _handle_added(self, added: CompetitionAdded) -> None:
         self.id = CompetitionId(added.competition_id)
         self.name = CompetitionName(added.name)
         self.description = CompetitionDescription(added.description) if added.description else None
 
-    def _handle_removed(self, removed: CompetitionRemoved):
+    def _handle_removed(self, removed: CompetitionRemoved) -> None:
         self.deleted = True
 
-    def _handle_name_changed(self, changed: CompetitionNameChanged):
+    def _handle_name_changed(self, changed: CompetitionNameChanged) -> None:
         self.name = CompetitionName(changed.name)
 
-    def _handle_description_changed(self, changed: CompetitionDescriptionChanged):
+    def _handle_description_changed(self, changed: CompetitionDescriptionChanged) -> None:
         self.description = CompetitionDescription(changed.description) if changed.description else None
 
-    def _handle_candidate_added(self, added: CandidateAdded):
+    def _handle_candidate_added(self, added: CandidateAdded) -> None:
         candidate_id = CandidateId(added.candidate_id)
         candidate = Candidate(candidate_id)
         candidate.name = CandidateName(added.name)
         candidate.description = CandidateDescription(added.description) if added.description else None
         self.candidates.append(candidate)
 
-    def _handle_candidate_name_changed(self, changed: CandidateNameChanged):
+    def _handle_candidate_name_changed(self, changed: CandidateNameChanged) -> None:
         for candidate in self.candidates:
             if candidate.id == changed.candidate_id:
                 candidate.name = CandidateName(changed.name)
                 break
 
-    def _handle_candidate_description_changed(self, changed: CandidateDescriptionChanged):
+    def _handle_candidate_description_changed(self, changed: CandidateDescriptionChanged) -> None:
         for candidate in self.candidates:
             if candidate.id == changed.candidate_id:
                 candidate.description = CandidateDescription(changed.description) if changed.description else None
                 break
 
-    def _handle_candidate_image_changed(self, changed: CandidateImageChanged):
+    def _handle_candidate_image_changed(self, changed: CandidateImageChanged) -> None:
         if changed.url is None and changed.caption is not None:
             raise ValueError("Candidate image URL must be set to set caption")
         for candidate in self.candidates:
@@ -99,7 +95,7 @@ class Competition(AggregateRoot[CompetitionId]):
                     candidate.image = None
                 break
 
-    def _handle_candidate_removed(self, removed: CandidateRemoved):
+    def _handle_candidate_removed(self, removed: CandidateRemoved) -> None:
         for candidate in self.candidates:
             if candidate.id == removed.candidate_id:
                 self.candidates.remove(candidate)

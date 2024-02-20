@@ -4,8 +4,8 @@ from PhotoVote.Event import Event
 
 
 class CandidateImageChanged(Event):
-    candidate_id: str
-    competition_id: str
-    election_id: str
-    url: Optional[str]
-    caption: Optional[str]
+    candidate_id: Optional[str] = None
+    competition_id: Optional[str] = None
+    election_id: Optional[str] = None
+    url: Optional[str] = None
+    caption: Optional[str] = None

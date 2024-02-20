@@ -2,4 +2,6 @@
 /.idea/
 /.fleet/
 /src/server/.env
+/src/workers/cosmosdb/.env
+/src/workers/eventstore/.env
 __pycache__/
