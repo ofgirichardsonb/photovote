@@ -19,8 +19,8 @@ class Competition(Aggregate[CompetitionId]):
     candidates: List[Candidate] = Field(default_factory=lambda: [])
     _handlers: Dict[Type[Event], Callable[[Event], None]]
 
-    def __init__(self, competition_id: CompetitionId):
-        super().__init__(competition_id)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._handlers = {
             CompetitionAdded: lambda e: self._handle_added(e),
             CompetitionRemoved: lambda e: self._handle_removed(e),
@@ -65,7 +65,7 @@ class Competition(Aggregate[CompetitionId]):
 
     def _handle_candidate_added(self, added: CandidateAdded) -> None:
         candidate_id = CandidateId(added.candidate_id)
-        candidate = Candidate(candidate_id)
+        candidate = Candidate(id=candidate_id)
         candidate.name = CandidateName(added.name)
         candidate.description = CandidateDescription(added.description) if added.description else None
         self.candidates.append(candidate)

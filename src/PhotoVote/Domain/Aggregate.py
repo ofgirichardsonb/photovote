@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Generic, TypeVar, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from PhotoVote.Event import Event
 from PhotoVote.Exception import AlreadyDeletedError
@@ -44,9 +44,6 @@ class BaseAggregate(BaseModel):
 
 class Aggregate(BaseAggregate, Generic[T]):
     id: T
-
-    def __init__(self, aggregate_id: T):
-        super().__init__(id=aggregate_id)
 
     @abstractmethod
     def when(self, event: Event) -> None:

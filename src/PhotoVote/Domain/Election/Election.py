@@ -25,11 +25,11 @@ class Election(Aggregate[ElectionId]):
     voters: List[Voter] = []
     opened: Optional[ElectionOpenDate] = None
     closed: Optional[ElectionCloseDate] = None
-    handlers: Dict[Type[Event], Callable[[Event], None]]
+    _handlers: Dict[Type[Event], Callable[[Event], None]]
 
-    def __init__(self, election_id: ElectionId):
-        super().__init__(election_id)
-        self.handlers = {
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._handlers = {
             ElectionCreated: lambda e: self._handle_created(e),
             ElectionDeleted: lambda e: self._handle_deleted(e),
             ElectionNameChanged: lambda e: self._handle_name_changed(e),
@@ -52,8 +52,8 @@ class Election(Aggregate[ElectionId]):
         }
 
     def when(self, event: Event) -> None:
-        if isinstance(event, tuple(self.handlers.keys())):
-            self.handlers[type(event)](event)
+        if isinstance(event, tuple(self._handlers.keys())):
+            self._handlers[type(event)](event)
         else:
             raise TypeError(f"Unexpected event type: {type(event)} received by Election-{self.id}")
 
@@ -64,7 +64,7 @@ class Election(Aggregate[ElectionId]):
         return next((c for c in self.competitions if c.id == cid), None)
 
     def _handle_competition_added(self, added: CompetitionAdded) -> None:
-        competition = Competition(CompetitionId(added.competition_id))
+        competition = Competition(id=CompetitionId(added.competition_id))
         competition.apply(added)
         self.competitions.append(competition)
 
@@ -142,7 +142,7 @@ class Election(Aggregate[ElectionId]):
         self.closed = ElectionCloseDate(closed.close_date)
 
     def _handle_voter_registered(self, registered: VoterRegistered) -> None:
-        voter = Voter(VoterId(registered.voter_id))
+        voter = Voter(id=VoterId(registered.voter_id))
         voter.apply(registered)
         for v in self.voters:
             if v.email == voter.email:
@@ -155,5 +155,5 @@ class Election(Aggregate[ElectionId]):
             if voter.ballot_issued:
                 raise AlreadyVotedError()
             voter.apply(created)
-            ballot = Ballot(BallotId(created.ballot_id))
+            ballot = Ballot(id=BallotId(created.ballot_id))
             self.ballots.append(ballot)

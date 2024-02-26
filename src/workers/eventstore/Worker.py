@@ -11,13 +11,13 @@ from memphis.message import Message
 from PhotoVote.Domain import AggregateId
 from PhotoVote.Domain.Aggregate import BaseAggregate
 from PhotoVote.Event import Event
-from workers.BaseWorker import BaseWorker
-from workers.eventstore.EventStoreConfig import EventStoreConfig
+from workers.MemphisWorker import MemphisWorker
+from workers.eventstore.Config import Config
 
 
-class EventStoreWorker(BaseWorker):
+class Worker(MemphisWorker):
     # will also validate configuration
-    config: EventStoreConfig = EventStoreConfig()
+    config: Config = Config()
     esdb = EventStoreDBClient(uri=config.eventstore_uri)
 
     def __init__(self, aggregate_name: str, memphis: Memphis):
@@ -60,8 +60,8 @@ class EventStoreWorker(BaseWorker):
             package = importlib.import_module(package_name)
             object_type = getattr(package, short_name)
             return object_type
-        except Exception as ex:
-            raise TypeError(f"Unable to load type {class_name}: {ex}")
+        except ValueError:
+            return None
 
     def _create_event_instance(self, class_name: str, event_id: str, event_dict: Dict) -> Event:
         event_type = self._get_type(class_name)

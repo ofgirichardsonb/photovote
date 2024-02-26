@@ -14,8 +14,8 @@ class Candidate(Aggregate[CandidateId]):
     image: Optional[CandidateImage] = None
     _handlers: Dict[Type[Event], Callable[[Event], None]]
 
-    def __init__(self, candidate_id: CandidateId):
-        super().__init__(candidate_id)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._handlers = {
             CandidateAdded: lambda e: self._handled_added(e),
             CandidateRemoved: lambda e: self._handled_removed(e),

@@ -16,8 +16,8 @@ class Ballot(Aggregate[BallotId]):
     cast: bool = False
     _handlers: Dict[Type[Event], Callable[[Event], None]]
 
-    def __init__(self, ballot_id: BallotId):
-        super().__init__(ballot_id)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._handlers = {
             BallotCreated: lambda e: self._handle_created(e),
             BallotCandidateRated: lambda e: self._handle_candidate_rated(e),

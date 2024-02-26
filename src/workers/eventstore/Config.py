@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 
-class EventStoreConfig:
+class Config:
     eventstore_uri: str
     memphis_host: str
     memphis_account_id: int

@@ -7,7 +7,7 @@ from memphis.consumer import Consumer
 from memphis.message import Message
 
 
-class BaseWorker(Service):
+class MemphisWorker(Service):
     _memphis: Memphis
     _consumer: Consumer
     _aggregate_name: str
