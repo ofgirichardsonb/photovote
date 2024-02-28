@@ -5,3 +5,4 @@
 /src/workers/cosmosdb/.env
 /src/workers/eventstore/.env
 __pycache__/
+/src/client/node_modules/
